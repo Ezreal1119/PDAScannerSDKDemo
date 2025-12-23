@@ -1,0 +1,367 @@
+package com.example.pdascannersdkdemo
+
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.device.ScanManager
+import android.device.ScanManager.ACTION_DECODE
+import android.device.ScanManager.BARCODE_LENGTH_TAG
+import android.device.ScanManager.BARCODE_STRING_TAG
+import android.device.ScanManager.BARCODE_TYPE_TAG
+import android.device.ScanManager.DECODE_DATA_TAG
+import android.device.scanner.configuration.PropertyID.LABEL_PREFIX
+import android.device.scanner.configuration.PropertyID.LABEL_SUFFIX
+import android.device.scanner.configuration.PropertyID.SEND_LABEL_PREFIX_SUFFIX
+import android.device.scanner.configuration.Triggering
+import android.os.Bundle
+import android.util.Log
+import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+
+private const val TAG = "Patrick_MainActivity"
+class MainActivity : AppCompatActivity() {
+
+    private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
+    private val btnCloseScanner by lazy { findViewById<Button>(R.id.btnCloseScanner) }
+    private val btnGetMode by lazy { findViewById<Button>(R.id.btnGetMode) }
+    private val btnToIntent by lazy { findViewById<Button>(R.id.btnToIntent) }
+    private val btnToKeyboard by lazy { findViewById<Button>(R.id.btnToKeyboard) }
+    private val btnStartScan by lazy { findViewById<Button>(R.id.btnStartScan) }
+    private val btnStopScan by lazy { findViewById<Button>(R.id.btnStopScan) }
+    private val btnLock by lazy { findViewById<Button>(R.id.btnLock) }
+    private val btnLockState by lazy { findViewById<Button>(R.id.btnLockState) }
+    private val btnUnlock by lazy { findViewById<Button>(R.id.btnUnlock)}
+    private val btnResetScannerParameters by lazy { findViewById<Button>(R.id.btnResetScannerParameters) }
+    private val btnSetTriggerMode by lazy { findViewById<Button>(R.id.btnSetTriggerMode) }
+    private val btnSetPreSuf by lazy { findViewById<Button>(R.id.btnSetPreSuf) }
+    private val btnClearPreSuf by lazy { findViewById<Button>(R.id.btnClearPreSuf) }
+    private val btnClearConsole by lazy { findViewById<Button>(R.id.btnClearConsole) }
+    private val tvScannerOn by lazy { findViewById<TextView>(R.id.tvScannerOn) }
+    private val tvScannerOff by lazy { findViewById<TextView>(R.id.tvScannerOff) }
+    private val tvResult by lazy { findViewById<TextView>(R.id.tvResult) }
+    private val etTextBox by lazy { findViewById<EditText>(R.id.etTextBox)}
+    private val spTriggerMode by lazy { findViewById<Spinner>(R.id.spTriggerMode) }
+    private val triggerModeList = listOf(Triggering.HOST, Triggering.CONTINUOUS, Triggering.PULSE)
+
+    private val mScanManager = ScanManager()
+    private val receiver = object: BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val barcodeBytes = intent?.getByteArrayExtra(DECODE_DATA_TAG)
+            val barcodeString = intent?.getStringExtra(BARCODE_STRING_TAG)
+            val barcodeLen = intent?.getIntExtra(BARCODE_LENGTH_TAG, 0)
+            val barcodeType = intent?.getByteExtra(BARCODE_TYPE_TAG, 0)
+            Log.e(TAG, "barcodeString: $barcodeString")
+            Log.e(TAG, "barcodeLen: $barcodeLen")
+            Log.e(TAG, "barcodeType: $barcodeType")
+            val text = buildString {
+                append("This is an Intent received by Patrick's receiver:\n")
+                append("barcodeString: $barcodeString\n")
+                append("barcodeLen: $barcodeLen\n")
+                append("barcodeType: $barcodeType")
+            }
+            tvResult.text = text
+        }
+
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        btnOpenScanner.setOnClickListener { onOpenScannerButtonClicked() }
+        btnCloseScanner.setOnClickListener { onCloseScannerButtonClicked() }
+        btnGetMode.setOnClickListener { onGetModeButtonClicked() }
+        btnToIntent.setOnClickListener { onToIntentButtonClicked() }
+        btnToKeyboard.setOnClickListener { onToKeyboardButtonClicked() }
+        btnStartScan.setOnClickListener { onStartScanButtonClicked() }
+        btnStopScan.setOnClickListener { onStopScanButtonClicked() }
+        btnLock.setOnClickListener { onLockButtonClicked() }
+        btnLockState.setOnClickListener { onLockStateButtonClicked() }
+        btnUnlock.setOnClickListener { onUnlockButtonClicked() }
+        btnResetScannerParameters.setOnClickListener { onResetScannerParametersButtonClicked() }
+        btnSetTriggerMode.setOnClickListener { onSetTriggerModeButtonClicked() }
+        btnSetPreSuf.setOnClickListener { onSetPreSufButtonClicked() }
+        btnClearPreSuf.setOnClickListener { onClearPreSufButtonClicked() }
+        btnClearConsole.setOnClickListener { onClearConsoleButtonClicked() }
+
+        spTriggerMode.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, triggerModeList).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    override fun onStart() {
+        super.onStart()
+        init()
+        registerReceiver(receiver, IntentFilter(ACTION_DECODE))
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(receiver)
+    }
+
+    private fun init() {
+        when (mScanManager.scannerState) {
+            true -> {
+                tvScannerOn.visibility = View.VISIBLE
+                tvScannerOff.visibility = View.INVISIBLE
+                btnOpenScanner.isEnabled = false
+                btnCloseScanner.isEnabled = true
+            }
+            false -> {
+                tvScannerOn.visibility = View.INVISIBLE
+                tvScannerOff.visibility = View.VISIBLE
+                btnOpenScanner.isEnabled = true
+                btnCloseScanner.isEnabled = false
+            }
+        }
+
+        when (mScanManager.outputMode) {
+            0 -> {
+                btnToIntent.isEnabled = false
+                btnToKeyboard.isEnabled = true
+            }
+            1 -> {
+                btnToIntent.isEnabled = true
+                btnToKeyboard.isEnabled = false
+            }
+        }
+
+        when (mScanManager.triggerLockState) {
+            true -> {
+                btnLock.isEnabled = false
+                btnUnlock.isEnabled = true
+            }
+            false -> {
+                btnLock.isEnabled = true
+                btnUnlock.isEnabled = false
+            }
+        }
+
+        spTriggerMode.setSelection(triggerModeList.indexOf(mScanManager.triggerMode))
+    }
+
+    private fun onOpenScannerButtonClicked() {
+        // To power on the scanner
+        val ret = mScanManager.openScanner()
+        when (ret) {
+            true -> {
+                Toast.makeText(this, "Scanner opened successfully", Toast.LENGTH_SHORT).show()
+                tvScannerOn.visibility = View.VISIBLE
+                tvScannerOff.visibility = View.INVISIBLE
+                btnOpenScanner.isEnabled = false
+                btnCloseScanner.isEnabled = true
+            }
+            false -> Toast.makeText(this, "Scanner opened failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onCloseScannerButtonClicked() {
+        // To power off the scanner
+        mScanManager.closeScanner()
+        Toast.makeText(this, "Scanner closed successfully", Toast.LENGTH_SHORT).show()
+        tvScannerOn.visibility = View.INVISIBLE
+        tvScannerOff.visibility = View.VISIBLE
+        btnOpenScanner.isEnabled = true
+        btnCloseScanner.isEnabled = false
+    }
+
+    private fun onGetModeButtonClicked() {
+        // To get the output mode of the scanner
+        val outputMode = mScanManager.outputMode
+        when (outputMode) {
+            0 -> Toast.makeText(this, "Intent Output", Toast.LENGTH_SHORT).show()
+            1 -> Toast.makeText(this, "Keyboard Output", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun onToIntentButtonClicked() {
+        // To switch output mode to Intent mode
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ret = mScanManager.switchOutputMode(0)
+        when (ret) {
+            true -> {
+                Toast.makeText(this, "Switch to Intent successfully", Toast.LENGTH_SHORT).show()
+                btnToIntent.isEnabled = false
+                btnToKeyboard.isEnabled = true
+            }
+            false -> Toast.makeText(this, "Switch to Intent failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun onToKeyboardButtonClicked() {
+        // To switch output mode to Keyboard mode
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+        } else {
+            val ret = mScanManager.switchOutputMode(1)
+            when (ret) {
+                true -> {
+                    Toast.makeText(this, "Switch to Keyboard successfully", Toast.LENGTH_SHORT).show()
+                    btnToIntent.isEnabled = true
+                    btnToKeyboard.isEnabled = false
+                }
+                false -> Toast.makeText(this, "Switch to Keyboard failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun onStartScanButtonClicked() {
+        // To start scanning
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (mScanManager.triggerLockState) {
+            Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ret = mScanManager.startDecode()
+        when (ret) {
+            true -> {
+                if (mScanManager.outputMode == 1) {
+                    etTextBox.requestFocus()
+                }
+                Toast.makeText(this, "Start scan successfully", Toast.LENGTH_SHORT).show()
+            }
+            false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onStopScanButtonClicked() {
+        // To stop scanning
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (mScanManager.triggerLockState) {
+            Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ret = mScanManager.stopDecode()
+        when (ret) {
+            true -> Toast.makeText(this, "Stop scan successfully", Toast.LENGTH_SHORT).show()
+            false -> Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun onLockButtonClicked() {
+        // To disable scanner
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ret = mScanManager.lockTrigger()
+        when (ret) {
+            true -> {
+                Toast.makeText(this, "Disable Scan button successfully", Toast.LENGTH_SHORT).show()
+                btnLock.isEnabled = false
+                btnUnlock.isEnabled = true
+            }
+            false -> Toast.makeText(this, "Disable Scan button failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun onLockStateButtonClicked() {
+        // To check if the scanner has been disabled or not
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        when (mScanManager.triggerLockState) {
+            true -> Toast.makeText(this, "Scan Button is not Active", Toast.LENGTH_SHORT).show()
+            false -> Toast.makeText(this, "Scan Button is Active", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onUnlockButtonClicked() {
+        // To enable scanner
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ret = mScanManager.unlockTrigger()
+        when (ret) {
+            true -> {
+                Toast.makeText(this, "Enable Scan button successfully", Toast.LENGTH_SHORT).show()
+                btnLock.isEnabled = true
+                btnUnlock.isEnabled = false
+            }
+            false -> Toast.makeText(this, "Enable Scan button failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onResetScannerParametersButtonClicked() {
+        // To reset the scanner config
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ret = mScanManager.resetScannerParameters()
+        when (ret) {
+            true -> {
+                Toast.makeText(this, "Reset Scanner parameters successfully", Toast.LENGTH_SHORT).show()
+                init()
+            }
+            false -> Toast.makeText(this, "Reset Scanner parameters failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onSetTriggerModeButtonClicked() {
+        // To set the scanning mode
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            mScanManager.triggerMode = spTriggerMode.selectedItem as Triggering
+            val triggerModeAsString = when (spTriggerMode.selectedItem) {
+                Triggering.HOST -> "HOST"
+                Triggering.CONTINUOUS -> "CONTINUOUS"
+                Triggering.PULSE -> "PULSE"
+                else -> null
+            }
+            Toast.makeText(
+                this,
+                "Set Trigger Mode successfully: $triggerModeAsString",
+                Toast.LENGTH_SHORT
+            ).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Set Trigger Mode failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onSetPreSufButtonClicked() {
+        mScanManager.setParameterString(intArrayOf(LABEL_PREFIX, LABEL_SUFFIX), arrayOf("Pre_", "_Suf"))
+        mScanManager.setParameterInts(intArrayOf(SEND_LABEL_PREFIX_SUFFIX), intArrayOf(3))
+    }
+
+    private fun onClearPreSufButtonClicked() {
+        mScanManager.setParameterInts(intArrayOf(SEND_LABEL_PREFIX_SUFFIX), intArrayOf(0))
+    }
+
+    private fun onClearConsoleButtonClicked() {
+        tvResult.text = ""
+        etTextBox.setText("")
+    }
+
+
+}

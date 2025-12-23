@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp">
+
+        <TextView
+            android:id="@+id/tvScannerOn"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Scanner is On"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:background="#00FF00"
+            android:visibility="invisible"/>
+
+        <TextView
+            android:id="@+id/tvScannerOff"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Scanner is Off"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:background="#FF0000"
+            android:visibility="invisible"/>
+
+    </FrameLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:background="@drawable/border"
+        android:padding="5dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnOpenScanner"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Open Scanner"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+
+                <Button
+                    android:id="@+id/btnCloseScanner"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Close Scanner"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnToIntent"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="To Intent"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+                <Button
+                    android:id="@+id/btnGetMode"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Get Mode"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+                <Button
+                    android:id="@+id/btnToKeyboard"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="To Keyboard"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStartScan"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Start Scan"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+
+                <Button
+                    android:id="@+id/btnStopScan"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Stop Scan"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnLock"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lock"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+                <Button
+                    android:id="@+id/btnLockState"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="LockState"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+                <Button
+                    android:id="@+id/btnUnlock"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Unlock"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnResetScannerParameters"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reset Scanner Parameters"
+                android:textSize="15sp"
+                android:padding="0dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnSetTriggerMode"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Set Trigger Mode"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+                <Spinner
+                    android:id="@+id/spTriggerMode"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnSetPreSuf"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="SetPrefixSuffix"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+
+                <Button
+                    android:id="@+id/btnClearPreSuf"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="ClearPrefixSuffix"
+                    android:layout_margin="2dp"
+                    android:textSize="12sp"
+                    android:padding="0dp"/>
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnClearConsole"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Clear Console"
+                android:textSize="20sp"
+                android:padding="0dp"/>
+
+
+
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="10dp"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/border">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/etTextBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"/>
+
+            <TextView
+                android:id="@+id/tvResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"/>
+
+        </LinearLayout>
+
+
+
+    </ScrollView>
+
+</LinearLayout>
