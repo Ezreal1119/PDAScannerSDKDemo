@@ -237,7 +237,6 @@ class MainActivity : AppCompatActivity() {
                 if (mScanManager.outputMode == 1) {
                     etTextBox.requestFocus()
                 }
-                Toast.makeText(this, "Start scan successfully", Toast.LENGTH_SHORT).show()
             }
             false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
         }
@@ -254,10 +253,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val ret = mScanManager.stopDecode()
-        when (ret) {
-            true -> Toast.makeText(this, "Stop scan successfully", Toast.LENGTH_SHORT).show()
-            false -> Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
-        }
+        if (!ret) Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
     }
 
 
@@ -352,10 +348,12 @@ class MainActivity : AppCompatActivity() {
     private fun onSetPreSufButtonClicked() {
         mScanManager.setParameterString(intArrayOf(LABEL_PREFIX, LABEL_SUFFIX), arrayOf("Pre_", "_Suf"))
         mScanManager.setParameterInts(intArrayOf(SEND_LABEL_PREFIX_SUFFIX), intArrayOf(3))
+        Toast.makeText(this, "Set Prefix&Suffix successfully", Toast.LENGTH_SHORT).show()
     }
 
     private fun onClearPreSufButtonClicked() {
         mScanManager.setParameterInts(intArrayOf(SEND_LABEL_PREFIX_SUFFIX), intArrayOf(0))
+        Toast.makeText(this, "Clear Prefix&Suffix successfully", Toast.LENGTH_SHORT).show()
     }
 
     private fun onClearConsoleButtonClicked() {
