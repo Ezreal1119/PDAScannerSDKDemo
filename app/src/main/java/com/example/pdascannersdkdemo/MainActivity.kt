@@ -15,18 +15,23 @@ import android.device.scanner.configuration.PropertyID.LABEL_PREFIX
 import android.device.scanner.configuration.PropertyID.LABEL_SUFFIX
 import android.device.scanner.configuration.PropertyID.SEND_LABEL_PREFIX_SUFFIX
 import android.device.scanner.configuration.Triggering
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 private const val TAG = "Patrick_MainActivity"
+private const val ACTION_CAPTURE_IMAGE_REQUEST = "action.scanner_capture_image"
+private const val ACTION_CAPTURE_IMAGE_RESULT = "scanner_capture_image_result"
+private const val BITMAP_BYTES_TAG = "bitmapBytes"
 class MainActivity : AppCompatActivity() {
 
     private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
@@ -49,27 +54,47 @@ class MainActivity : AppCompatActivity() {
     private val tvResult by lazy { findViewById<TextView>(R.id.tvResult) }
     private val etTextBox by lazy { findViewById<EditText>(R.id.etTextBox)}
     private val spTriggerMode by lazy { findViewById<Spinner>(R.id.spTriggerMode) }
+    private val ivScanImage by lazy { findViewById<ImageView>(R.id.ivScanImage) }
     private val triggerModeList = listOf(Triggering.HOST, Triggering.CONTINUOUS, Triggering.PULSE)
 
     private val mScanManager = ScanManager()
     private val receiver = object: BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val barcodeBytes = intent?.getByteArrayExtra(DECODE_DATA_TAG)
-            val barcodeString = intent?.getStringExtra(BARCODE_STRING_TAG)
-            val barcodeLen = intent?.getIntExtra(BARCODE_LENGTH_TAG, 0)
-            val barcodeType = intent?.getByteExtra(BARCODE_TYPE_TAG, 0)
-            Log.e(TAG, "barcodeString: $barcodeString")
-            Log.e(TAG, "barcodeLen: $barcodeLen")
-            Log.e(TAG, "barcodeType: $barcodeType")
-            val text = buildString {
-                append("This is an Intent received by Patrick's receiver:\n")
-                append("barcodeString: $barcodeString\n")
-                append("barcodeLen: $barcodeLen\n")
-                append("barcodeType: $barcodeType")
+            when (intent?.action) {
+                ACTION_DECODE -> {
+                    val barcodeBytes = intent.getByteArrayExtra(DECODE_DATA_TAG)
+                    val barcodeString = intent.getStringExtra(BARCODE_STRING_TAG)
+                    val barcodeLen = intent.getIntExtra(BARCODE_LENGTH_TAG, 0)
+                    val barcodeType = intent.getByteExtra(BARCODE_TYPE_TAG, 0)
+                    Log.e(TAG, "barcodeString: $barcodeString")
+                    Log.e(TAG, "barcodeLen: $barcodeLen")
+                    Log.e(TAG, "barcodeType: $barcodeType")
+                    val text = buildString {
+                        append("This is an Intent received by Patrick's receiver:\n")
+                        append("barcodeString: $barcodeString\n")
+                        append("barcodeLen: $barcodeLen\n")
+                        append("barcodeType: $barcodeType")
+                    }
+                    tvResult.text = text
+                    sendBroadcast(Intent(ACTION_CAPTURE_IMAGE_REQUEST))
+                }
+                ACTION_CAPTURE_IMAGE_RESULT -> {
+                    Log.e(TAG, "onReceive: ACTION_CAPTURE_IMAGE successfully 1")
+                    val imageData = intent.getByteArrayExtra(BITMAP_BYTES_TAG)
+                    if (imageData != null && imageData.isNotEmpty()) {
+                        val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+                        if (bitmap != null) {
+                            ivScanImage.setImageBitmap(bitmap)
+                            Log.e(TAG, "onReceive: ACTION_CAPTURE_IMAGE successfully")
+                        } else {
+                            Toast.makeText(this@MainActivity, "bitmap = 0", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(this@MainActivity, "imageData = 0", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
-            tvResult.text = text
         }
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,7 +126,11 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         init()
-        registerReceiver(receiver, IntentFilter(ACTION_DECODE))
+        val filter = IntentFilter().apply {
+            addAction(ACTION_DECODE)
+            addAction(ACTION_CAPTURE_IMAGE_RESULT)
+        }
+        registerReceiver(receiver, filter)
     }
 
     override fun onStop() {
