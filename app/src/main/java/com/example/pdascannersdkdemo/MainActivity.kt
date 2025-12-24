@@ -202,6 +202,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun init() {
+        // To initialize the UI
         when (mScanManager.scannerState) {
             true -> {
                 tvScannerOn.visibility = View.VISIBLE
@@ -400,17 +401,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onSetPreSufButtonClicked() {
+        // To set prefix and suffix for the result scanned
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
         mScanManager.setParameterString(intArrayOf(LABEL_PREFIX, LABEL_SUFFIX), arrayOf("Pre_", "_Suf"))
         mScanManager.setParameterInts(intArrayOf(SEND_LABEL_PREFIX_SUFFIX), intArrayOf(3))
         Toast.makeText(this, "Set Prefix&Suffix successfully", Toast.LENGTH_SHORT).show()
     }
 
     private fun onClearPreSufButtonClicked() {
+        // To clear the prefix and suffix that was set before
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return
+        }
         mScanManager.setParameterInts(intArrayOf(SEND_LABEL_PREFIX_SUFFIX), intArrayOf(0))
         Toast.makeText(this, "Clear Prefix&Suffix successfully", Toast.LENGTH_SHORT).show()
     }
 
     private fun onClearConsoleButtonClicked() {
+        // To clear all the texts and image
         tvResult.text = ""
         tvOCR.text = ""
         etTextBox.setText("")
