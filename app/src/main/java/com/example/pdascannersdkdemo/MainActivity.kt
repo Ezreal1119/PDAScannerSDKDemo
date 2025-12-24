@@ -1,5 +1,7 @@
 package com.example.pdascannersdkdemo
 
+import android.R.layout.simple_spinner_dropdown_item
+import android.R.layout.simple_spinner_item
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -41,13 +43,13 @@ private const val ACTION_CAPTURE_IMAGE_RESULT = "scanner_capture_image_result"
 private const val BITMAP_BYTES_TAG = "bitmapBytes"
 private const val LEFT_SCAN_KEYCODE = 521
 private const val RIGHT_SCAN_KEYCODE = 520
+private val outputModeList = listOf(OutputMode.INTENT, OutputMode.KEYBOARD)
+private val triggerModeList = listOf(Triggering.HOST, Triggering.CONTINUOUS, Triggering.PULSE)
 class MainActivity : AppCompatActivity() {
 
     private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
     private val btnCloseScanner by lazy { findViewById<Button>(R.id.btnCloseScanner) }
-    private val btnGetMode by lazy { findViewById<Button>(R.id.btnGetMode) }
-    private val btnToIntent by lazy { findViewById<Button>(R.id.btnToIntent) }
-    private val btnToKeyboard by lazy { findViewById<Button>(R.id.btnToKeyboard) }
+    private val btnSetOutputMode by lazy { findViewById<Button>(R.id.btnSetOutputMode) }
     private val btnLock by lazy { findViewById<Button>(R.id.btnLock) }
     private val btnLockState by lazy { findViewById<Button>(R.id.btnLockState) }
     private val btnUnlock by lazy { findViewById<Button>(R.id.btnUnlock)}
@@ -61,9 +63,9 @@ class MainActivity : AppCompatActivity() {
     private val tvOCR by lazy { findViewById<TextView>(R.id.tvOCR) }
     private val tvResult by lazy { findViewById<TextView>(R.id.tvResult) }
     private val etTextBox by lazy { findViewById<EditText>(R.id.etTextBox)}
-    private val spTriggerMode by lazy { findViewById<Spinner>(R.id.spTriggerMode) }
+    private val spSetTriggerMode by lazy { findViewById<Spinner>(R.id.spSetTriggerMode) }
+    private val spSetOutputMode by lazy { findViewById<Spinner>(R.id.spSetOutputMode)}
     private val ivScanImage by lazy { findViewById<ImageView>(R.id.ivScanImage) }
-    private val triggerModeList = listOf(Triggering.HOST, Triggering.CONTINUOUS, Triggering.PULSE)
 
     private val mScanManager = ScanManager()
     private val receiver = object: BroadcastReceiver() {
@@ -125,9 +127,7 @@ class MainActivity : AppCompatActivity() {
 
         btnOpenScanner.setOnClickListener { onOpenScannerButtonClicked() }
         btnCloseScanner.setOnClickListener { onCloseScannerButtonClicked() }
-        btnGetMode.setOnClickListener { onGetModeButtonClicked() }
-        btnToIntent.setOnClickListener { onToIntentButtonClicked() }
-        btnToKeyboard.setOnClickListener { onToKeyboardButtonClicked() }
+        btnSetOutputMode.setOnClickListener { onSetOutputModeButtonClicked() }
         btnLock.setOnClickListener { onLockButtonClicked() }
         btnLockState.setOnClickListener { onLockStateButtonClicked() }
         btnUnlock.setOnClickListener { onUnlockButtonClicked() }
@@ -137,8 +137,11 @@ class MainActivity : AppCompatActivity() {
         btnClearPreSuf.setOnClickListener { onClearPreSufButtonClicked() }
         btnClearConsole.setOnClickListener { onClearConsoleButtonClicked() }
 
-        spTriggerMode.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, triggerModeList).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spSetOutputMode.adapter = ArrayAdapter(this, simple_spinner_item, outputModeList).apply {
+            setDropDownViewResource(simple_spinner_dropdown_item)
+        }
+        spSetTriggerMode.adapter = ArrayAdapter(this, simple_spinner_item, triggerModeList).apply {
+            setDropDownViewResource(simple_spinner_dropdown_item)
         }
     }
 
@@ -218,16 +221,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        when (mScanManager.outputMode) {
-            0 -> {
-                btnToIntent.isEnabled = false
-                btnToKeyboard.isEnabled = true
-            }
-            1 -> {
-                btnToIntent.isEnabled = true
-                btnToKeyboard.isEnabled = false
-            }
-        }
 
         when (mScanManager.triggerLockState) {
             true -> {
@@ -240,7 +233,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        spTriggerMode.setSelection(triggerModeList.indexOf(mScanManager.triggerMode))
+        spSetTriggerMode.setSelection(triggerModeList.indexOf(mScanManager.triggerMode))
+        when (mScanManager.outputMode) {
+            0 -> spSetOutputMode.setSelection(outputModeList.indexOf(OutputMode.INTENT))
+            1 -> spSetOutputMode.setSelection(outputModeList.indexOf(OutputMode.KEYBOARD))
+        }
     }
 
     private fun onOpenScannerButtonClicked() {
@@ -268,49 +265,30 @@ class MainActivity : AppCompatActivity() {
         btnCloseScanner.isEnabled = false
     }
 
-    private fun onGetModeButtonClicked() {
-        // To get the output mode of the scanner
-        val outputMode = mScanManager.outputMode
-        when (outputMode) {
-            0 -> Toast.makeText(this, "Intent Output", Toast.LENGTH_SHORT).show()
-            1 -> Toast.makeText(this, "Keyboard Output", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun onToIntentButtonClicked() {
-        // To switch output mode to Intent mode
+    private fun onSetOutputModeButtonClicked() {
         if (!mScanManager.scannerState) {
             Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
             return
         }
-        val ret = mScanManager.switchOutputMode(0)
-        when (ret) {
-            true -> {
-                Toast.makeText(this, "Switch to Intent successfully", Toast.LENGTH_SHORT).show()
-                btnToIntent.isEnabled = false
-                btnToKeyboard.isEnabled = true
-            }
-            false -> Toast.makeText(this, "Switch to Intent failed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-
-    private fun onToKeyboardButtonClicked() {
-        // To switch output mode to Keyboard mode
-        if (!mScanManager.scannerState) {
-            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-        } else {
-            val ret = mScanManager.switchOutputMode(1)
-            when (ret) {
-                true -> {
-                    Toast.makeText(this, "Switch to Keyboard successfully", Toast.LENGTH_SHORT).show()
-                    btnToIntent.isEnabled = true
-                    btnToKeyboard.isEnabled = false
+        val mode = spSetOutputMode.selectedItem as OutputMode
+        when (mode) {
+            OutputMode.INTENT -> {
+                val ret = mScanManager.switchOutputMode(0)
+                when (ret) {
+                    true -> Toast.makeText(this, "Switch to Intent successfully", Toast.LENGTH_SHORT).show()
+                    false -> Toast.makeText(this, "Switch to Intent failed", Toast.LENGTH_SHORT).show()
                 }
-                false -> Toast.makeText(this, "Switch to Keyboard failed", Toast.LENGTH_SHORT).show()
+            }
+            OutputMode.KEYBOARD -> {
+                val ret = mScanManager.switchOutputMode(1)
+                when (ret) {
+                    true -> Toast.makeText(this, "Switch to Keyboard successfully", Toast.LENGTH_SHORT).show()
+                    false -> Toast.makeText(this, "Switch to Keyboard failed", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
+
 
     private fun onLockButtonClicked() {
         // To disable scanner
@@ -382,8 +360,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
         try {
-            mScanManager.triggerMode = spTriggerMode.selectedItem as Triggering
-            val triggerModeAsString = when (spTriggerMode.selectedItem) {
+            mScanManager.triggerMode = spSetTriggerMode.selectedItem as Triggering
+            val triggerModeAsString = when (spSetTriggerMode.selectedItem) {
                 Triggering.HOST -> "HOST"
                 Triggering.CONTINUOUS -> "CONTINUOUS"
                 Triggering.PULSE -> "PULSE"
@@ -428,4 +406,9 @@ class MainActivity : AppCompatActivity() {
         etTextBox.setText("")
         ivScanImage.setImageBitmap(null)
     }
+}
+
+enum class OutputMode {
+    INTENT,
+    KEYBOARD
 }
