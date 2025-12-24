@@ -41,6 +41,7 @@
         android:layout_height="0dp"
         android:layout_weight="3"
         android:background="@drawable/border"
+        android:layout_marginTop="5dp"
         android:padding="5dp">
 
         <LinearLayout
@@ -77,6 +78,15 @@
                     android:padding="0dp"/>
 
             </LinearLayout>
+
+            <Button
+                android:id="@+id/btnResetScannerParameters"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reset Scanner Parameters"
+                android:textSize="15sp"
+                android:padding="0dp"/>
+
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -115,33 +125,6 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnStartScan"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Start Scan"
-                    android:layout_margin="2dp"
-                    android:textSize="12sp"
-                    android:padding="0dp"/>
-
-
-                <Button
-                    android:id="@+id/btnStopScan"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Stop Scan"
-                    android:layout_margin="2dp"
-                    android:textSize="12sp"
-                    android:padding="0dp"/>
-
-            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -180,13 +163,6 @@
 
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btnResetScannerParameters"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Reset Scanner Parameters"
-                android:textSize="15sp"
-                android:padding="0dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -206,8 +182,9 @@
                 <Spinner
                     android:id="@+id/spTriggerMode"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"/>
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="#DDDDDD"/>
 
             </LinearLayout>
 
@@ -223,7 +200,7 @@
                     android:layout_weight="1"
                     android:text="SetPrefixSuffix"
                     android:layout_margin="2dp"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     android:padding="0dp"/>
 
 
@@ -234,18 +211,25 @@
                     android:layout_weight="1"
                     android:text="ClearPrefixSuffix"
                     android:layout_margin="2dp"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
+                    android:padding="0dp"/>
+
+                <Button
+                    android:id="@+id/btnClearConsole"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Clear Console"
+                    android:textSize="10sp"
                     android:padding="0dp"/>
 
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btnClearConsole"
+            <TextView
+                android:id="@+id/tvOCR"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Clear Console"
-                android:textSize="20sp"
-                android:padding="0dp"/>
+                android:textSize="12sp"/>
 
             <ImageView
                 android:id="@+id/ivScanImage"

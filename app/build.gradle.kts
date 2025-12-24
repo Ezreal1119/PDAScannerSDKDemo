@@ -47,4 +47,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(files("libs/platform_sdk_v4.2.0618.jar"))
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 }

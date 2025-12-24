@@ -15,9 +15,11 @@ import android.device.scanner.configuration.PropertyID.LABEL_PREFIX
 import android.device.scanner.configuration.PropertyID.LABEL_SUFFIX
 import android.device.scanner.configuration.PropertyID.SEND_LABEL_PREFIX_SUFFIX
 import android.device.scanner.configuration.Triggering
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -27,11 +29,18 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+
+
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 
 private const val TAG = "Patrick_MainActivity"
 private const val ACTION_CAPTURE_IMAGE_REQUEST = "action.scanner_capture_image"
 private const val ACTION_CAPTURE_IMAGE_RESULT = "scanner_capture_image_result"
 private const val BITMAP_BYTES_TAG = "bitmapBytes"
+private const val LEFT_SCAN_KEYCODE = 521
+private const val RIGHT_SCAN_KEYCODE = 520
 class MainActivity : AppCompatActivity() {
 
     private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
@@ -39,8 +48,6 @@ class MainActivity : AppCompatActivity() {
     private val btnGetMode by lazy { findViewById<Button>(R.id.btnGetMode) }
     private val btnToIntent by lazy { findViewById<Button>(R.id.btnToIntent) }
     private val btnToKeyboard by lazy { findViewById<Button>(R.id.btnToKeyboard) }
-    private val btnStartScan by lazy { findViewById<Button>(R.id.btnStartScan) }
-    private val btnStopScan by lazy { findViewById<Button>(R.id.btnStopScan) }
     private val btnLock by lazy { findViewById<Button>(R.id.btnLock) }
     private val btnLockState by lazy { findViewById<Button>(R.id.btnLockState) }
     private val btnUnlock by lazy { findViewById<Button>(R.id.btnUnlock)}
@@ -51,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private val btnClearConsole by lazy { findViewById<Button>(R.id.btnClearConsole) }
     private val tvScannerOn by lazy { findViewById<TextView>(R.id.tvScannerOn) }
     private val tvScannerOff by lazy { findViewById<TextView>(R.id.tvScannerOff) }
+    private val tvOCR by lazy { findViewById<TextView>(R.id.tvOCR) }
     private val tvResult by lazy { findViewById<TextView>(R.id.tvResult) }
     private val etTextBox by lazy { findViewById<EditText>(R.id.etTextBox)}
     private val spTriggerMode by lazy { findViewById<Spinner>(R.id.spTriggerMode) }
@@ -76,7 +84,6 @@ class MainActivity : AppCompatActivity() {
                         append("barcodeType: $barcodeType")
                     }
                     tvResult.text = text
-                    sendBroadcast(Intent(ACTION_CAPTURE_IMAGE_REQUEST))
                 }
                 ACTION_CAPTURE_IMAGE_RESULT -> {
                     Log.e(TAG, "onReceive: ACTION_CAPTURE_IMAGE successfully 1")
@@ -86,6 +93,7 @@ class MainActivity : AppCompatActivity() {
                         if (bitmap != null) {
                             ivScanImage.setImageBitmap(bitmap)
                             Log.e(TAG, "onReceive: ACTION_CAPTURE_IMAGE successfully")
+                            runOcr(bitmap)
                         } else {
                             Toast.makeText(this@MainActivity, "bitmap = 0", Toast.LENGTH_SHORT).show()
                         }
@@ -97,6 +105,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun runOcr(bitmap: Bitmap) {
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+        recognizer.process(image)
+            .addOnSuccessListener { result ->
+                val text = result.text
+                tvOCR.text = text
+                Log.e(TAG, "OCR result:\n$text")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "OCR failed", e)
+            }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -106,8 +128,6 @@ class MainActivity : AppCompatActivity() {
         btnGetMode.setOnClickListener { onGetModeButtonClicked() }
         btnToIntent.setOnClickListener { onToIntentButtonClicked() }
         btnToKeyboard.setOnClickListener { onToKeyboardButtonClicked() }
-        btnStartScan.setOnClickListener { onStartScanButtonClicked() }
-        btnStopScan.setOnClickListener { onStopScanButtonClicked() }
         btnLock.setOnClickListener { onLockButtonClicked() }
         btnLockState.setOnClickListener { onLockStateButtonClicked() }
         btnUnlock.setOnClickListener { onUnlockButtonClicked() }
@@ -137,6 +157,49 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
         unregisterReceiver(receiver)
     }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode != LEFT_SCAN_KEYCODE && keyCode != RIGHT_SCAN_KEYCODE) {
+            return super.onKeyUp(keyCode, event)
+        }
+        if (event != null && event.repeatCount > 0) return true
+        Log.e(TAG, "onKeyDown: 1", )
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return true
+        }
+        if (mScanManager.triggerLockState) {
+            Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
+            return super.onKeyUp(keyCode, event)
+        }
+        val ret = mScanManager.startDecode()
+        when (ret) {
+            true -> if (mScanManager.outputMode == 1) etTextBox.requestFocus()
+            false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
+        }
+        return true
+    }
+
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode != LEFT_SCAN_KEYCODE && keyCode != RIGHT_SCAN_KEYCODE) {
+            return super.onKeyDown(keyCode, event)
+        }
+        if (!mScanManager.scannerState) {
+            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
+            return super.onKeyDown(keyCode, event)
+        }
+        if (mScanManager.triggerLockState) {
+            Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
+            return super.onKeyDown(keyCode, event)
+        }
+        sendBroadcast(Intent(ACTION_CAPTURE_IMAGE_REQUEST))
+        val ret = mScanManager.stopDecode()
+        if (!ret) Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
+        return true
+    }
+
+
 
     private fun init() {
         when (mScanManager.scannerState) {
@@ -213,7 +276,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     private fun onToIntentButtonClicked() {
         // To switch output mode to Intent mode
         if (!mScanManager.scannerState) {
@@ -248,43 +310,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-
-    private fun onStartScanButtonClicked() {
-        // To start scanning
-        if (!mScanManager.scannerState) {
-            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (mScanManager.triggerLockState) {
-            Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val ret = mScanManager.startDecode()
-        when (ret) {
-            true -> {
-                if (mScanManager.outputMode == 1) {
-                    etTextBox.requestFocus()
-                }
-            }
-            false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun onStopScanButtonClicked() {
-        // To stop scanning
-        if (!mScanManager.scannerState) {
-            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (mScanManager.triggerLockState) {
-            Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val ret = mScanManager.stopDecode()
-        if (!ret) Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
-    }
-
 
     private fun onLockButtonClicked() {
         // To disable scanner
@@ -387,8 +412,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun onClearConsoleButtonClicked() {
         tvResult.text = ""
+        tvOCR.text = ""
         etTextBox.setText("")
+        ivScanImage.setImageBitmap(null)
     }
-
-
 }
