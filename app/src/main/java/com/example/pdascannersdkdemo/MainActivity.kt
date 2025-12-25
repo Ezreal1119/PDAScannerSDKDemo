@@ -44,15 +44,14 @@ private const val BITMAP_BYTES_TAG = "bitmapBytes"
 private const val LEFT_SCAN_KEYCODE = 521
 private const val RIGHT_SCAN_KEYCODE = 520
 private val outputModeList = listOf(OutputMode.INTENT, OutputMode.KEYBOARD)
+private val lockStateList = listOf(LockState.UNLOCKED, LockState.LOCKED)
 private val triggerModeList = listOf(Triggering.HOST, Triggering.CONTINUOUS, Triggering.PULSE)
 class MainActivity : AppCompatActivity() {
 
     private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
     private val btnCloseScanner by lazy { findViewById<Button>(R.id.btnCloseScanner) }
     private val btnSetOutputMode by lazy { findViewById<Button>(R.id.btnSetOutputMode) }
-    private val btnLock by lazy { findViewById<Button>(R.id.btnLock) }
-    private val btnLockState by lazy { findViewById<Button>(R.id.btnLockState) }
-    private val btnUnlock by lazy { findViewById<Button>(R.id.btnUnlock)}
+    private val btnSetLockState by lazy { findViewById<Button>(R.id.btnSetLockState) }
     private val btnResetScannerParameters by lazy { findViewById<Button>(R.id.btnResetScannerParameters) }
     private val btnSetTriggerMode by lazy { findViewById<Button>(R.id.btnSetTriggerMode) }
     private val btnSetPreSuf by lazy { findViewById<Button>(R.id.btnSetPreSuf) }
@@ -65,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private val etTextBox by lazy { findViewById<EditText>(R.id.etTextBox)}
     private val spSetTriggerMode by lazy { findViewById<Spinner>(R.id.spSetTriggerMode) }
     private val spSetOutputMode by lazy { findViewById<Spinner>(R.id.spSetOutputMode)}
+    private val spSetLockState by lazy { findViewById<Spinner>(R.id.spSetLockState) }
     private val ivScanImage by lazy { findViewById<ImageView>(R.id.ivScanImage) }
 
     private val mScanManager = ScanManager()
@@ -128,9 +128,7 @@ class MainActivity : AppCompatActivity() {
         btnOpenScanner.setOnClickListener { onOpenScannerButtonClicked() }
         btnCloseScanner.setOnClickListener { onCloseScannerButtonClicked() }
         btnSetOutputMode.setOnClickListener { onSetOutputModeButtonClicked() }
-        btnLock.setOnClickListener { onLockButtonClicked() }
-        btnLockState.setOnClickListener { onLockStateButtonClicked() }
-        btnUnlock.setOnClickListener { onUnlockButtonClicked() }
+        btnSetLockState.setOnClickListener { onSetLockStateButtonClicked() }
         btnResetScannerParameters.setOnClickListener { onResetScannerParametersButtonClicked() }
         btnSetTriggerMode.setOnClickListener { onSetTriggerModeButtonClicked() }
         btnSetPreSuf.setOnClickListener { onSetPreSufButtonClicked() }
@@ -138,6 +136,9 @@ class MainActivity : AppCompatActivity() {
         btnClearConsole.setOnClickListener { onClearConsoleButtonClicked() }
 
         spSetOutputMode.adapter = ArrayAdapter(this, simple_spinner_item, outputModeList).apply {
+            setDropDownViewResource(simple_spinner_dropdown_item)
+        }
+        spSetLockState.adapter = ArrayAdapter(this, simple_spinner_item, lockStateList).apply {
             setDropDownViewResource(simple_spinner_dropdown_item)
         }
         spSetTriggerMode.adapter = ArrayAdapter(this, simple_spinner_item, triggerModeList).apply {
@@ -220,24 +221,16 @@ class MainActivity : AppCompatActivity() {
                 btnCloseScanner.isEnabled = false
             }
         }
-
-
-        when (mScanManager.triggerLockState) {
-            true -> {
-                btnLock.isEnabled = false
-                btnUnlock.isEnabled = true
-            }
-            false -> {
-                btnLock.isEnabled = true
-                btnUnlock.isEnabled = false
-            }
-        }
-
-        spSetTriggerMode.setSelection(triggerModeList.indexOf(mScanManager.triggerMode))
+        
         when (mScanManager.outputMode) {
             0 -> spSetOutputMode.setSelection(outputModeList.indexOf(OutputMode.INTENT))
             1 -> spSetOutputMode.setSelection(outputModeList.indexOf(OutputMode.KEYBOARD))
         }
+        when (mScanManager.triggerLockState) {
+            true -> spSetLockState.setSelection(lockStateList.indexOf(LockState.LOCKED))
+            false -> spSetLockState.setSelection(lockStateList.indexOf(LockState.UNLOCKED))
+        }
+        spSetTriggerMode.setSelection(triggerModeList.indexOf(mScanManager.triggerMode))
     }
 
     private fun onOpenScannerButtonClicked() {
@@ -290,50 +283,30 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun onLockButtonClicked() {
-        // To disable scanner
+    private fun onSetLockStateButtonClicked() {
+        // To set lock state (i.e., Enable the scanner or disable it)
         if (!mScanManager.scannerState) {
             Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
             return
         }
-        val ret = mScanManager.lockTrigger()
-        when (ret) {
-            true -> {
-                Toast.makeText(this, "Disable Scan button successfully", Toast.LENGTH_SHORT).show()
-                btnLock.isEnabled = false
-                btnUnlock.isEnabled = true
+        val state = spSetLockState.selectedItem as LockState
+        when (state) {
+            LockState.UNLOCKED -> {
+                val ret = mScanManager.unlockTrigger()
+                if (ret) {
+                    Toast.makeText(this, "Scanner enabled successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Scanner enabled failed", Toast.LENGTH_SHORT).show()
+                }
             }
-            false -> Toast.makeText(this, "Disable Scan button failed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-
-    private fun onLockStateButtonClicked() {
-        // To check if the scanner has been disabled or not
-        if (!mScanManager.scannerState) {
-            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-            return
-        }
-        when (mScanManager.triggerLockState) {
-            true -> Toast.makeText(this, "Scan Button is not Active", Toast.LENGTH_SHORT).show()
-            false -> Toast.makeText(this, "Scan Button is Active", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun onUnlockButtonClicked() {
-        // To enable scanner
-        if (!mScanManager.scannerState) {
-            Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val ret = mScanManager.unlockTrigger()
-        when (ret) {
-            true -> {
-                Toast.makeText(this, "Enable Scan button successfully", Toast.LENGTH_SHORT).show()
-                btnLock.isEnabled = true
-                btnUnlock.isEnabled = false
+            LockState.LOCKED -> {
+                val ret = mScanManager.lockTrigger()
+                if (ret) {
+                    Toast.makeText(this, "Scanner disabled successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Scanner disabled failed", Toast.LENGTH_SHORT).show()
+                }
             }
-            false -> Toast.makeText(this, "Enable Scan button failed", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -411,4 +384,9 @@ class MainActivity : AppCompatActivity() {
 enum class OutputMode {
     INTENT,
     KEYBOARD
+}
+
+enum class LockState {
+    UNLOCKED,
+    LOCKED
 }

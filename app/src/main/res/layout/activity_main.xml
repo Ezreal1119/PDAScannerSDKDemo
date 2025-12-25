@@ -103,12 +103,21 @@
                     android:textSize="12sp"
                     android:padding="0dp"/>
 
-                <Spinner
-                    android:id="@+id/spSetOutputMode"
+                <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:background="#DDDDDD"/>
+                    android:layout_gravity="center"
+                    android:padding="10dp">
+
+                    <Spinner
+                        android:id="@+id/spSetOutputMode"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#DDDDDD"/>
+
+                </FrameLayout>
+
 
             </LinearLayout>
 
@@ -119,17 +128,7 @@
                 android:orientation="horizontal">
 
                 <Button
-                    android:id="@+id/btnLock"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Lock"
-                    android:layout_margin="2dp"
-                    android:textSize="12sp"
-                    android:padding="0dp"/>
-
-                <Button
-                    android:id="@+id/btnLockState"
+                    android:id="@+id/btnSetLockState"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -138,15 +137,23 @@
                     android:textSize="12sp"
                     android:padding="0dp"/>
 
-                <Button
-                    android:id="@+id/btnUnlock"
+
+                <FrameLayout
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:text="Unlock"
-                    android:layout_margin="2dp"
-                    android:textSize="12sp"
-                    android:padding="0dp"/>
+                    android:layout_gravity="center"
+                    android:padding="10dp">
+
+                    <Spinner
+                        android:id="@+id/spSetLockState"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="#DDDDDD"/>
+
+                </FrameLayout>
+
 
             </LinearLayout>
 
@@ -166,12 +173,20 @@
                     android:textSize="12sp"
                     android:padding="0dp"/>
 
-                <Spinner
-                    android:id="@+id/spSetTriggerMode"
+                <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:background="#DDDDDD"/>
+                    android:layout_gravity="center"
+                    android:padding="10dp">
+
+                    <Spinner
+                        android:id="@+id/spSetTriggerMode"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#DDDDDD"/>
+
+                </FrameLayout>
 
             </LinearLayout>
 
