@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.device.ScanManager
 import android.device.ScanManager.ACTION_DECODE
 import android.device.ScanManager.BARCODE_LENGTH_TAG
@@ -20,6 +21,7 @@ import android.device.scanner.configuration.Triggering
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -31,6 +33,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 
@@ -38,6 +41,8 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 
 private const val TAG = "Patrick_MainActivity"
+private const val PREF_NAME = "scan_mode"
+private const val IS_HOLD_CONTINUOUS = "isHoldContinuous"
 private const val ACTION_CAPTURE_IMAGE_REQUEST = "action.scanner_capture_image"
 private const val ACTION_CAPTURE_IMAGE_RESULT = "scanner_capture_image_result"
 private const val BITMAP_BYTES_TAG = "bitmapBytes"
@@ -45,7 +50,12 @@ private const val LEFT_SCAN_KEYCODE = 521
 private const val RIGHT_SCAN_KEYCODE = 520
 private val outputModeList = listOf(OutputMode.INTENT, OutputMode.KEYBOARD)
 private val lockStateList = listOf(LockState.UNLOCKED, LockState.LOCKED)
-private val triggerModeList = listOf(Triggering.HOST, Triggering.PULSE, Triggering.CONTINUOUS)
+private val triggerModeList = listOf(
+    MyTriggering.HOST,
+    MyTriggering.PULSE,
+    MyTriggering.CONTINUOUS,
+    MyTriggering.HOLD_CONTINUOUS)
+
 class MainActivity : AppCompatActivity() {
 
     private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
@@ -68,6 +78,8 @@ class MainActivity : AppCompatActivity() {
     private val ivScanImage by lazy { findViewById<ImageView>(R.id.ivScanImage) }
 
     private val mScanManager = ScanManager()
+    private lateinit var sharedPreferences: SharedPreferences
+    private var lastKeyDownTime = 0L
     private val receiver = object: BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
@@ -125,6 +137,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        sharedPreferences = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
+
         btnOpenScanner.setOnClickListener { onOpenScannerButtonClicked() }
         btnCloseScanner.setOnClickListener { onCloseScannerButtonClicked() }
         btnSetOutputMode.setOnClickListener { onSetOutputModeButtonClicked() }
@@ -160,6 +174,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         unregisterReceiver(receiver)
+        mScanManager.stopDecode()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -167,7 +182,9 @@ class MainActivity : AppCompatActivity() {
         if (keyCode != LEFT_SCAN_KEYCODE && keyCode != RIGHT_SCAN_KEYCODE) {
             return super.onKeyDown(keyCode, event)
         }
-        if (event != null && event.repeatCount > 0) return true
+        if (event != null && event.repeatCount > 0 && !sharedPreferences.getBoolean(IS_HOLD_CONTINUOUS, false)) {
+            return true
+        }
         if (!mScanManager.scannerState) {
             Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
             return super.onKeyDown(keyCode, event)
@@ -175,6 +192,11 @@ class MainActivity : AppCompatActivity() {
         if (mScanManager.triggerLockState) {
             Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
             return super.onKeyDown(keyCode, event)
+        }
+        if (sharedPreferences.getBoolean(IS_HOLD_CONTINUOUS, false)) { // Need to handle HOLD_CONTINUOUS carefully since it's based on HOST
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastKeyDownTime < 500L) return true
+            lastKeyDownTime = now
         }
         if (mScanManager.triggerMode == Triggering.CONTINUOUS) { // Need to specially handle the logic of CONTINUOUS
             repeat(10) {
@@ -242,7 +264,20 @@ class MainActivity : AppCompatActivity() {
             true -> spSetLockState.setSelection(lockStateList.indexOf(LockState.LOCKED))
             false -> spSetLockState.setSelection(lockStateList.indexOf(LockState.UNLOCKED))
         }
-        spSetTriggerMode.setSelection(triggerModeList.indexOf(mScanManager.triggerMode))
+
+        when (mScanManager.triggerMode) {
+            Triggering.HOST -> {
+                if (sharedPreferences.getBoolean(IS_HOLD_CONTINUOUS, false)) {
+                    spSetTriggerMode.setSelection(triggerModeList.indexOf(MyTriggering.HOLD_CONTINUOUS))
+                }
+            }
+            Triggering.PULSE -> {
+                spSetTriggerMode.setSelection(triggerModeList.indexOf(MyTriggering.PULSE))
+            }
+            Triggering.CONTINUOUS -> {
+                spSetTriggerMode.setSelection(triggerModeList.indexOf(MyTriggering.CONTINUOUS))
+            }
+        }
     }
 
     private fun onOpenScannerButtonClicked() {
@@ -345,12 +380,21 @@ class MainActivity : AppCompatActivity() {
             return
         }
         try {
-            mScanManager.triggerMode = spSetTriggerMode.selectedItem as Triggering
-            val triggerModeAsString = when (spSetTriggerMode.selectedItem) {
-                Triggering.HOST -> "HOST"
-                Triggering.CONTINUOUS -> "CONTINUOUS"
-                Triggering.PULSE -> "PULSE"
-                else -> null
+            mScanManager.triggerMode = when(spSetTriggerMode.selectedItem as MyTriggering) {
+                MyTriggering.HOST, MyTriggering.HOLD_CONTINUOUS -> Triggering.HOST
+                MyTriggering.PULSE -> Triggering.PULSE
+                MyTriggering.CONTINUOUS -> Triggering.CONTINUOUS
+            }
+            val triggerModeAsString = when (spSetTriggerMode.selectedItem as MyTriggering) {
+                MyTriggering.HOST -> "HOST"
+                MyTriggering.CONTINUOUS -> "CONTINUOUS"
+                MyTriggering.PULSE -> "PULSE"
+                MyTriggering.HOLD_CONTINUOUS -> "HOLD_CONTINUOUS"
+            }
+            if (spSetTriggerMode.selectedItem as MyTriggering == MyTriggering.HOLD_CONTINUOUS) {
+                sharedPreferences.edit { putBoolean("isHoldContinuous", true) }
+            } else {
+                sharedPreferences.edit { putBoolean("isHoldContinuous", false) }
             }
             Toast.makeText(
                 this,
@@ -360,7 +404,8 @@ class MainActivity : AppCompatActivity() {
             tvResult.text = buildString {
                 append("HOST: Trigger release or Time-out\n")
                 append("PULSE: Decode or Time-out\n")
-                append("CONTINUOUS: Hand-free continuous")
+                append("CONTINUOUS: Hand-free continuous\n")
+                append("HOLD_CONTINUOUS: Continuous trigger mode")
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -406,4 +451,11 @@ enum class OutputMode {
 enum class LockState {
     UNLOCKED,
     LOCKED
+}
+
+enum class MyTriggering {
+    HOST,
+    PULSE,
+    CONTINUOUS,
+    HOLD_CONTINUOUS,
 }
