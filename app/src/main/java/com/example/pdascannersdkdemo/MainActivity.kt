@@ -45,7 +45,7 @@ private const val LEFT_SCAN_KEYCODE = 521
 private const val RIGHT_SCAN_KEYCODE = 520
 private val outputModeList = listOf(OutputMode.INTENT, OutputMode.KEYBOARD)
 private val lockStateList = listOf(LockState.UNLOCKED, LockState.LOCKED)
-private val triggerModeList = listOf(Triggering.HOST, Triggering.CONTINUOUS, Triggering.PULSE)
+private val triggerModeList = listOf(Triggering.HOST, Triggering.PULSE, Triggering.CONTINUOUS)
 class MainActivity : AppCompatActivity() {
 
     private val btnOpenScanner by lazy { findViewById<Button>(R.id.btnOpenScanner) }
@@ -163,23 +163,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        Log.e(TAG, "onKeyDown: ", )
         if (keyCode != LEFT_SCAN_KEYCODE && keyCode != RIGHT_SCAN_KEYCODE) {
-            return super.onKeyUp(keyCode, event)
+            return super.onKeyDown(keyCode, event)
         }
         if (event != null && event.repeatCount > 0) return true
-        Log.e(TAG, "onKeyDown: 1", )
         if (!mScanManager.scannerState) {
             Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-            return true
+            return super.onKeyDown(keyCode, event)
         }
         if (mScanManager.triggerLockState) {
             Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
-            return super.onKeyUp(keyCode, event)
+            return super.onKeyDown(keyCode, event)
         }
-        val ret = mScanManager.startDecode()
-        when (ret) {
-            true -> if (mScanManager.outputMode == 1) etTextBox.requestFocus()
-            false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
+        if (mScanManager.triggerMode == Triggering.CONTINUOUS) { // Need to specially handle the logic of CONTINUOUS
+            repeat(10) {
+                val ret = mScanManager.startDecode()
+                when (ret) {
+                    true -> if (mScanManager.outputMode == 1) etTextBox.requestFocus()
+                    false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            val ret = mScanManager.startDecode()
+            when (ret) {
+                true -> if (mScanManager.outputMode == 1) etTextBox.requestFocus()
+                false -> Toast.makeText(this, "Start scan failed", Toast.LENGTH_SHORT).show()
+            }
         }
         return true
     }
@@ -187,19 +197,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode != LEFT_SCAN_KEYCODE && keyCode != RIGHT_SCAN_KEYCODE) {
-            return super.onKeyDown(keyCode, event)
+            return super.onKeyUp(keyCode, event)
         }
         if (!mScanManager.scannerState) {
             Toast.makeText(this, "Please turn on the scanner first", Toast.LENGTH_SHORT).show()
-            return super.onKeyDown(keyCode, event)
+            return super.onKeyUp(keyCode, event)
         }
         if (mScanManager.triggerLockState) {
             Toast.makeText(this, "Please unlock the scanner first", Toast.LENGTH_SHORT).show()
-            return super.onKeyDown(keyCode, event)
+            return super.onKeyUp(keyCode, event)
         }
         sendBroadcast(Intent(ACTION_CAPTURE_IMAGE_REQUEST))
-        val ret = mScanManager.stopDecode()
-        if (!ret) Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
+        if (mScanManager.triggerMode != Triggering.CONTINUOUS) { // No need to stopDecode for CONTINUOUS, simply press KeyDown again will stop decoding
+            val ret = mScanManager.stopDecode()
+            if (!ret) Toast.makeText(this, "Stop scan failed", Toast.LENGTH_SHORT).show()
+        }
         return true
     }
 
@@ -345,6 +357,11 @@ class MainActivity : AppCompatActivity() {
                 "Set Trigger Mode successfully: $triggerModeAsString",
                 Toast.LENGTH_SHORT
             ).show()
+            tvResult.text = buildString {
+                append("HOST: Trigger release or Time-out\n")
+                append("PULSE: Decode or Time-out\n")
+                append("CONTINUOUS: Hand-free continuous")
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Set Trigger Mode failed", Toast.LENGTH_SHORT).show()
